@@ -24,34 +24,34 @@ public class UserController {
 	@Autowired
 	private UserService userService;
 
-	@GetMapping("/find")
+	@GetMapping
 	public ResponseEntity<List<User>> getAllUsers() {
 		return new ResponseEntity<List<User>>(userService.findAll(), HttpStatus.OK);
 	}
 
-	@GetMapping("/find/id/{id}")
+	@GetMapping("/id/{id}")
 	public ResponseEntity<User> getUserById(@PathVariable("id") Long id) {
 		return new ResponseEntity<User>(userService.findByKey(id), HttpStatus.OK);
 	}
 
-	@GetMapping("/find/username/{username}")
+	@GetMapping("/username/{username}")
 	public ResponseEntity<User> getUserByUsername(@PathVariable("username") String username) {
 		return new ResponseEntity<User>(userService.findByUsername(username).orElse(null), HttpStatus.OK);
 	}
 
-	@PostMapping("/create")
+	@PostMapping
 	public ResponseEntity<Void> createUser(@RequestBody User user) {
 		userService.create(user);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@PutMapping("/update")
+	@PutMapping
 	public ResponseEntity<Void> updateUser(@RequestBody User user) {
 		userService.update(user);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@DeleteMapping("/delete/{id}")
+	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
 		userService.delete(id);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);

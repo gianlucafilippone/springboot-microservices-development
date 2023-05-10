@@ -29,29 +29,29 @@ public class JobController {
 	@Autowired
 	private UserService userService;
 
-	@GetMapping("/find")
+	@GetMapping
 	public ResponseEntity<List<Job>> getAllJobs() {
 		return new ResponseEntity<List<Job>>(jobService.findAll(), HttpStatus.OK);
 	}
 
-	@GetMapping("/find/{id}")
+	@GetMapping("/{id}")
 	public ResponseEntity<Job> getJobById(@PathVariable("id") Long id) {
 		return new ResponseEntity<Job>(jobService.findByKey(id), HttpStatus.OK);
 	}
 
-	@PostMapping("/create")
+	@PostMapping
 	public ResponseEntity<Void> createJob(@RequestBody Job job) {
 		jobService.create(job);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@PutMapping("/update")
+	@PutMapping
 	public ResponseEntity<Void> updateJob(@RequestBody Job job) {
 		jobService.update(job);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@DeleteMapping("/delete/{id}")
+	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deleteJob(@PathVariable("id") Long id) {
 		jobService.delete(id);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
