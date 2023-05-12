@@ -1,9 +1,9 @@
-package it.disim.univaq.sose.examples.model;
+package it.disim.univaq.sose.examples.openjob.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import it.disim.univaq.sose.examples.model.audit.DateAudit;
+import it.disim.univaq.sose.examples.openjob.model.audit.DateAudit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

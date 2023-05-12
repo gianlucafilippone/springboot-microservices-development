@@ -1,4 +1,4 @@
-package it.disim.univaq.sose.examples.model.audit;
+package it.disim.univaq.sose.examples.openjob.model.audit;
 
 import java.io.Serializable;
 import java.time.Instant;

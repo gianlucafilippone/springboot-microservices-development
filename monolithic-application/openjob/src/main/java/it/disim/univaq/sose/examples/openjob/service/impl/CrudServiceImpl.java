@@ -1,11 +1,11 @@
-package it.disim.univaq.sose.examples.service.impl;
+package it.disim.univaq.sose.examples.openjob.service.impl;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import it.disim.univaq.sose.examples.repository.CrudRepository;
-import it.disim.univaq.sose.examples.service.CrudService;
+import it.disim.univaq.sose.examples.openjob.repository.CrudRepository;
+import it.disim.univaq.sose.examples.openjob.service.CrudService;
 
 public class CrudServiceImpl<Entity, Key> implements CrudService<Entity, Key>{
 
@@ -18,7 +18,7 @@ public class CrudServiceImpl<Entity, Key> implements CrudService<Entity, Key>{
 	}
 
 	@Override
-	public Entity findByKey(Key key) {
+	public Entity findById(Key key) {
 		return repository.findById(key).orElse(null);
 	}
 

@@ -1,8 +1,8 @@
-package it.disim.univaq.sose.examples.service;
+package it.disim.univaq.sose.examples.openjob.service;
 
 import java.util.Optional;
 
-import it.disim.univaq.sose.examples.model.User;
+import it.disim.univaq.sose.examples.openjob.model.User;
 
 public interface UserService extends CrudService<User, Long> {
 

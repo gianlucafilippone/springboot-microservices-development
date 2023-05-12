@@ -1,4 +1,4 @@
-package it.disim.univaq.sose.examples;
+package it.disim.univaq.sose.examples.openjob;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

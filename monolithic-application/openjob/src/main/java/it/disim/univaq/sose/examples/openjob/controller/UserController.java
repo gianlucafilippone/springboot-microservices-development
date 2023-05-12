@@ -1,4 +1,4 @@
-package it.disim.univaq.sose.examples.controller;
+package it.disim.univaq.sose.examples.openjob.controller;
 
 import java.util.List;
 
@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import it.disim.univaq.sose.examples.model.User;
-import it.disim.univaq.sose.examples.service.UserService;
+import it.disim.univaq.sose.examples.openjob.model.User;
+import it.disim.univaq.sose.examples.openjob.service.UserService;
 
 @RestController
 @RequestMapping("/user")
@@ -31,7 +31,7 @@ public class UserController {
 
 	@GetMapping("/id/{id}")
 	public ResponseEntity<User> getUserById(@PathVariable("id") Long id) {
-		return new ResponseEntity<User>(userService.findByKey(id), HttpStatus.OK);
+		return new ResponseEntity<User>(userService.findById(id), HttpStatus.OK);
 	}
 
 	@GetMapping("/username/{username}")
@@ -51,7 +51,7 @@ public class UserController {
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@DeleteMapping("/{id}")
+	@DeleteMapping("/id/{id}")
 	public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
 		userService.delete(id);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
