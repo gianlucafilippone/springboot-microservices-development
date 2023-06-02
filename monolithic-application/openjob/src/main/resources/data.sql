@@ -10,7 +10,7 @@ INSERT INTO "user_role" ("user_id", "role_id") VALUES ('1', '1');
 INSERT INTO "user_role" ("user_id", "role_id") VALUES ('2', '2');
 INSERT INTO "user_role" ("user_id", "role_id") VALUES ('3', '3');
 
-INSERT INTO "job" ("description", "title", "user_id") VALUES ('2020-01-09 15:41:00', '2020-01-09 15:41:00', 'Postdoctoral Researcher', 'Postdoctoral Researcher', '3');
+INSERT INTO "job" ("created_at", "updated_at", "description", "title", "user_id") VALUES ('2020-01-09 15:41:00', '2020-01-09 15:41:00', 'Postdoctoral Researcher', 'Postdoctoral Researcher', '3');
 INSERT INTO "job" ("created_at", "updated_at", "description", "title", "user_id") VALUES ('2020-01-09 15:41:00', '2020-01-09 15:41:00', 'Java Developer', 'Java Developer', '3');
 
 INSERT INTO "job_user" ("job_id", "user_id") VALUES ('1', '2');
