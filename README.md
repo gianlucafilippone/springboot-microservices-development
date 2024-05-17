@@ -4,6 +4,37 @@ Sample Spring Boot microservice application, developed with Spring Web, Spring C
 
 Openjob is a simple platform allowing people to publish or apply for job offers.
 
+## Repository information
+This repository has been set up for the Service Oriented Software Engineering course at University of L'Aquila for academic years 2022-2023 and 2023-2024.
+
+It features both the monolithic and microservice version of the Openjob system and a [step-by-step guide](development/) from the two "simple" User and Job microservices to the final dockerized system. The source of the application in each development step is made available in the [development](development/) folder.
+
+> ![NOTE]
+> Spring Boot and Spring Cloud versions are not updated to their latest available releases. For compatibility reasons, this repository uses Spring Boot 3.1.11 (updated from 3.0.6) and Spring Cloud 2022.0.2.
+
+### Repository structure
+```
+springboot-microservices-development
+|   README.md               # This file
+|   LICENSE                 # License file
+|   .gitignore              # .gitignore file
+|---docs                    # Documentation's images
+|---monolithic-application 
+|   └---openjob             # Monolithic openjob application
+|---microservice-application
+|   |---config-server       # Configuration server service implementation
+|   |---discovery-server    # Discovery server service implementation
+|   |---gateway             # System's API Gateway implementation
+|   |---job                 # Job microservice implementation
+|   |---user                # User microservice implementation
+|   |---docker-compose.yml  # Docker compose file
+|   └---pom.xml             # Maven's package root pom
+└---development             # Folder containing the step-by-step guide for building the final application starting from the initial microservices
+    |   README.md           # Development guide documentation
+    |---docs                # Guide's images
+    |---0-microservices     # Initial microservices (development step 0)
+    └---...                 # Further development steps (1 to 5)
+```
 
 ## Monolithic application
 
@@ -16,7 +47,7 @@ Download the repository
 
 ```
 git clone https://github.com/gianlucafilippone/springboot-microservices-development.git
-cd monolithic-application/openjob
+cd springboot-microservices-development/monolithic-application/openjob
 ```
 
 The application can be installed and launched either on the local machine or on a Docker container.
@@ -48,13 +79,16 @@ docker build -t openjob .
 docker run --name openjob -dp 9092:9092 openjob
 ```
 
-### Application architecture
-
-![monolith-architecture](/docs/images/monolith-architecture.png)
+### System architecture
+<p align="center">
+  <img src="docs/images/monolith-architecture.png" alt="monolith architecture">
+</p>
 
 
 ### Data Model
-![monolith-db-schema](/docs/images/monolith-db-schema.png)
+<p align="center">
+  <img src="docs/images/monolith-db-schema.png" alt="monolith db schema">
+</p>
 
 ### Exposed endpoints
 
@@ -89,7 +123,7 @@ Download the repository
 
 ```
 git clone https://github.com/gianlucafilippone/springboot-microservices-development.git
-cd microservice-application/
+cd springboot-microservices-development/microservice-application/
 ```
 
 #### Standalone deployment
@@ -179,12 +213,15 @@ docker build -t job-microservice job/
 docker run --name job-microservice --network openjob-network -dp 9055:9055 -e CONFIG_SERVER_HOST=config-server -e CONFIG_SERVER_PORT=8888 -e EUREKA_SERVER=http://discovery-server:8761/eureka/ -e MYSQL_HOST=openjob-mysql:3306 -e MYSQL_DB=job -e MYSQL_PORT=3306 -e MYSQL_USER=root -e MYSQL_PASSWORD=root job-microservice
 ```
 
-### Application architecture
-![microservice-architecture](/docs/images/microservice-architecture.png)
+### System architecture
+<p align="center">
+  <img src="docs/images/microservice-architecture.png" alt="microservice architecture">
+</p>
 
 ### Data Model
-
-![microservice-db-schema](/docs/images/microservice-db-schema.png)
+<p align="center">
+  <img src="docs/images/microservice-db-schema.png" alt="microservice db schema">
+</p>
 
 ### Exposed Endpoints
 
@@ -219,6 +256,10 @@ These endpoints should not be exposed outside the application and used only by m
     - `[GET] http://localhost:9055/actuator/health`
     - `[GET] http://localhost:9055/actuator/info`
     - `[POST] http://localhost:9055/actuator/refresh`
+
+## Step-by-step development
+> [!NOTE]  
+> A step-by-step development guide from the two "simple" User and Job microservices to the final dockerized application can be found [here](development/README.md) together with the code related to each step.
 
 ## Thanks
 
