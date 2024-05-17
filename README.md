@@ -9,7 +9,7 @@ This repository has been set up for the Service Oriented Software Engineering co
 
 It features both the monolithic and microservice version of the Openjob system and a [step-by-step guide](development/) from the two "simple" User and Job microservices to the final dockerized system. The source of the application in each development step is made available in the [development](development/) folder.
 
-> ![NOTE]
+> [!NOTE]
 > Spring Boot and Spring Cloud versions are not updated to their latest available releases. For compatibility reasons, this repository uses Spring Boot 3.1.11 (updated from 3.0.6) and Spring Cloud 2022.0.2.
 
 ### Repository structure
@@ -256,10 +256,6 @@ These endpoints should not be exposed outside the application and used only by m
     - `[GET] http://localhost:9055/actuator/health`
     - `[GET] http://localhost:9055/actuator/info`
     - `[POST] http://localhost:9055/actuator/refresh`
-
-## Step-by-step development
-> [!NOTE]  
-> A step-by-step development guide from the two "simple" User and Job microservices to the final dockerized application can be found [here](development/README.md) together with the code related to each step.
 
 ## Thanks
 
