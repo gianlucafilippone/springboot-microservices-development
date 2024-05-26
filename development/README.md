@@ -56,7 +56,7 @@ mvn spring-boot:run
 ```
 
 > [!NOTE]
-> To avoid compiling each system component one by one, from step 1 on there will be a general `pom.xml` file to compile everything together.
+> To avoid compiling each system component one by one, from step 1 on there will be a root `pom.xml` file to compile everything together.
 > Deployment and run of the next steps is therefore easier.
 
 ### Exposed endpoints
@@ -74,7 +74,174 @@ mvn spring-boot:run
     - `[GET] http://localhost:9055/actuator/info`
 
 ## Step 1: Add API Gateway and mavenize application
-To be done
+
+### System architecture
+<p align="center">
+  <img src="docs/images/1-architecture.png" alt="base architecture">
+</p>
+
+### Add an API Gateway
+#### Create a new Spring Boot maven project
+Create a new Java Maven project. The easiest way is by using the [Spring Initializer](https://start.spring.io): select `Gateway` and `Actuator` as dependencies.
+
+> [!IMPORTANT]
+> Check the Spring Boot version if using Spring Initializer: this guide requires Spring Boot 3.1.11 and Spring Cloud 2022.0.2.
+> As of May 18, 2024, the support for Spring Boot 3.1.11 ended and Spring Initializer no longer allows the selection of versions previous to 3.2.6.
+> Update the pom.xml as below to keep the example working:
+> - Set Spring version to 3.1.1 and spring cloud version to 2022.0.2;
+> - Add `spring-cloud-starter-gateway` and `spring-cloud-starter-actuator` dependencies;
+> - Add the dependency management for Spring Cloud.
+
+The `pom.xml` of the new Gateway project should look like this:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.1.11</version>
+		<relativePath/>
+	</parent>
+	<groupId>it.disim.univaq.sose.examples.openjob</groupId>
+	<artifactId>gateway</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>gateway</name>
+	<description>Openjob API gateway</description>
+	<properties>
+		<java.version>17</java.version>
+		<spring-cloud.version>2022.0.2</spring-cloud.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-gateway</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>
+				org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+```
+
+#### Configure the gateway
+Create an `application.yaml` file into the `resource` folder (remove the default generated `application.properties`).
+
+Add the configuration for:
+- Server port;
+- Gateway routes;
+- Actuator.
+
+The resulting `application.yaml` should look like this:
+
+```yaml
+# Port of the gateway
+server:
+  port: 9000
+  
+# Gateway configuration
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user_route
+          uri: http://localhost:9044
+          predicates:
+          - Path=/api/usr/**
+          filters:
+          - RewritePath=/api/usr(?<segment>), /user$\{segment}
+        - id: job_route
+          uri: http://localhost:9055
+          predicates:
+          - Path=/api/job/**
+          filters:
+          - RewritePath=/api(?<segment>/?), $\{segment}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+```
+
+#### Exposed endpoints
+- `http://localhost:9000/api/usr` routed towards `http://localhost:9044/user`
+- `http://localhost:9000/api/job` routed towards `http://localhost:9055/job`
+- `[GET] http://localhost:9000/actuator/health`
+- `[GET] http://localhost:9000/actuator/info`
+
+### Mavenize application
+Add a new `pom.xml` file to the root folder of the project to declare application's modules:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>it.disim.univaq.sose.examples</groupId>
+	<artifactId>openjob</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>openjob</name>
+	<packaging>pom</packaging>
+
+	<modules>
+		<module>gateway</module>
+		<module>job</module>
+		<module>user</module>
+	</modules>
+</project>
+```
+
+### Deploy and run step 1 application
+
+> [!NOTE]
+> This deployment steps are valid for every development stage hereon.
+
+Download the repository and access this developent step subfolder
+
+```
+git clone https://github.com/gianlucafilippone/springboot-microservices-development.git
+cd springboot-microservices-development/development/1-gateway+maven
+```
+
+Compile all the services:
+```
+mvn install
+```
+
+Run:
+```
+mvn spring-boot:run -pl [user/job/gateway]
+```
 
 ## Step 2: Decentralize configuration
 To be done

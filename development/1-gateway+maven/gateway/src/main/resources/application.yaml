@@ -1,0 +1,27 @@
+# Port of the gateway
+server:
+  port: 9000
+  
+# Gateway configuration
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user_route
+          uri: http://localhost:9044
+          predicates:
+          - Path=/api/usr/**
+          filters:
+          - RewritePath=/api/usr(?<segment>), /user$\{segment}
+        - id: job_route
+          uri: http://localhost:9055
+          predicates:
+          - Path=/api/job/**
+          filters:
+          - RewritePath=/api(?<segment>/?), $\{segment}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
