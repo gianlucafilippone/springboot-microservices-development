@@ -255,7 +255,7 @@ mvn spring-boot:run -pl [user/job/gateway]
 
 ### System architecture
 <p align="center">
-  <img src="docs/images/1-architecture.png" alt="base architecture">
+  <img src="docs/images/2-architecture.png" alt="base architecture">
 </p>
 
 ### Create a property files repository
