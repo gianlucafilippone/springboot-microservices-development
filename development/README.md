@@ -505,7 +505,248 @@ public class UserMicroserviceInvoker {
 
 
 ## Step 3: Service discovery and Load Balancing
-To be done
+
+### System architecture
+<p align="center">
+  <img src="docs/images/3-architecture.png" alt="base architecture">
+</p>
+
+### Add a discovery server
+#### Create a new Spring Boot Maven project
+Create a new Java Maven project. The easiest way is by using the [Spring Initializer](https://start.spring.io): select `Eureka Server`, `Config`, and `Actuator` as dependencies.
+
+> [!IMPORTANT]
+> As for the previous step, mind the Spring Boot and Spring Cloud versions: `Spring Boot 3.1.11` and `Spring Cloud 2022.0.2`.
+
+Resulting `pom.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.1.11</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>it.disim.univaq.sose.examples.openjob</groupId>
+	<artifactId>discovery-server</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>discovery-server</name>
+	<description>Openjob Discovery Server</description>
+	<properties>
+		<java.version>17</java.version>
+		<spring-cloud.version>2022.0.2</spring-cloud.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+```
+
+#### Configure the Discovery Server
+Update the `application.properties` files:
+```properties
+spring.application.name=discovery-server
+spring.profiles.active=dev
+spring.config.import=optional:configserver:http://localhost:8888
+```
+
+Add the `@EnableEurekaServer` annotation to the application class. The class should look like this:
+``` java
+@EnableEurekaServer
+@SpringBootApplication
+public class DiscoveryServerApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DiscoveryServerApplication.class, args);
+	}
+}
+```
+
+Create a new `discovery-server-dev.yaml` file inside the property files repository:
+
+```yaml
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+info:
+  application:
+    name: Discovery Server
+    description: Openjob Discovery Server
+    version: 0.0.1-SNAPSHOT
+```
+
+#### Add a new module to the maven project
+Update the project's root `pom.xml` to add the discovery server as one of the modules.
+
+```xml
+...
+	<modules>
+		<module>config-server</module>
+		<module>discovery-server</module>
+		<module>gateway</module>
+		<module>job</module>
+		<module>user</module>
+	</modules>
+...
+```
+
+### Update User, Job and Gateway services
+> [!NOTE]
+> This steps are the same for each of the three components.
+
+Update the `pom.xml` to add the dependency for `spring-cloud-starter-netflix-eureka-client`:
+
+```xml
+	...
+	<dependency>
+		<groupId>org.springframework.cloud</groupId>
+		<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+	</dependency>
+	...
+```
+
+Add the `@EnableDiscoveryClient` annotation to the Application class. The class should look like this:
+
+```java
+@EnableJpaAuditing
+@EnableDiscoveryClient
+@SpringBootApplication
+public class UserApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(UserApplication.class, args);
+	}
+}
+```
+
+...or this:
+
+```java
+@EnableDiscoveryClient
+@SpringBootApplication
+public class GatewayApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(GatewayApplication.class, args);
+	}
+}
+```
+
+### Update property files
+Update `user-microservice-dev.properties` and `job-microservice-dev.properties` files within the property files repository by adding the configuration for registering to the Eureka Server. Add the following:
+
+```properties
+eureka.client.register-with-eureka=true
+eureka.client.healthcheck.enabled=true
+eureka.client.service-url.default-zone=http://localhost:8761/eureka/
+eureka.instance.lease-renewal-interval-in-seconds=30
+```
+
+Also update the `api-gateway-dev.yaml` file:
+
+```yaml
+eureka:
+  client:
+    registerWithEureka: true
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    lease-renewal-interval-in-seconds: 30
+```
+
+### Load balance the Job microservice
+Update the Api Gateway's configuration to load balance the requests towards the Job microservice. Change `uri` for `job_route` from `http://localhost:9055` to `lb://job-microservice`. The gateway configuration should look like this:
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user_route
+          uri: http://localhost:9044
+          predicates:
+          - Path=/api/usr/**
+          filters:
+          - RewritePath=/api/usr(?<segment>), /user$\{segment}
+        - id: job_route
+          uri: lb://job-microservice
+          predicates:
+          - Path=/api/job/**
+          filters:
+          - RewritePath=/api(?<segment>/?), $\{segment}
+```
+
+### Run and test
+1. Run all the system components and check the Eureka dashboard at `http://localhost:8761/eureka`.
+
+> [!IMPORTANT]
+> Remember to run the configuration server first, then the discovery server, and finally the User, Job, and Gateway services.
+
+2. Run more instances of the Job microservice from command line with `mvn spring-boot:run -pl job-microservice -Dspring-boot.run.arguments="--server.port=<PORT_NUMBER>` (use, e.g., 9066 as `PORT_NUMBER`)
+
+3. Check the new registered instances in the Eureka dashboard
+
+> [!NOTE]
+> By running multiple instances of the Job service, at this stage there will be inconsistency issues due to the in-memory DB used by each instance. These issues will be solved at Step 5.
 
 ## Step 4: Client-side load balancing with OpenFeign
 To be done
