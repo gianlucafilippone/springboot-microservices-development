@@ -77,7 +77,7 @@ mvn spring-boot:run
 
 ### System architecture
 <p align="center">
-  <img src="docs/images/1-architecture.png" alt="base architecture">
+  <img src="docs/images/1-architecture.png" alt="step 1 architecture">
 </p>
 
 ### Add an API Gateway
@@ -255,7 +255,7 @@ mvn spring-boot:run -pl [user/job/gateway]
 
 ### System architecture
 <p align="center">
-  <img src="docs/images/2-architecture.png" alt="base architecture">
+  <img src="docs/images/2-architecture.png" alt="step 2 architecture">
 </p>
 
 ### Create a property files repository
@@ -508,7 +508,7 @@ public class UserMicroserviceInvoker {
 
 ### System architecture
 <p align="center">
-  <img src="docs/images/3-architecture.png" alt="base architecture">
+  <img src="docs/images/3-architecture.png" alt="step 3 architecture">
 </p>
 
 ### Add a discovery server
@@ -749,7 +749,126 @@ spring:
 > By running multiple instances of the Job service, at this stage there will be inconsistency issues due to the in-memory DB used by each instance. These issues will be solved at Step 5.
 
 ## Step 4: Client-side load balancing with OpenFeign
-To be done
+Create an OpenFeign client to invoke the User microservice from within the Job microservice. This client will substitute the `UserMicroserviceInvoker` class used by the Job microservice to get the users details from their username. The OpenFeign client interacts with the Eureka server to get the User microservice instances and then it invokes one of them.
+
+### System architecture
+<p align="center">
+  <img src="docs/images/4-architecture.png" alt="step 4 architecture">
+</p>
+
+### Update Job microservice
+
+#### Add and configure Spring Cloud OpenFeign
+Update the `pom.xml` of the Job microservice to add the dependency for `spring-cloud-starter-openfeign`:
+
+```xml
+	...
+	<dependency>
+		<groupId>org.springframework.cloud</groupId>
+		<artifactId>spring-cloud-starter-openfeign</artifactId>
+	</dependency>
+	...
+```
+
+Add the `@EnableFeignClients` annotation to the Application class:
+
+```java
+@EnableJpaAuditing
+@EnableDiscoveryClient
+@EnableFeignClients
+@SpringBootApplication
+public class JobApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(JobApplication.class, args);
+	}
+}
+```
+
+#### Create a dynamic Feign client
+Create a new package (e.g., `it.disim.univaq.sose.examples.openjob.feign`) and a new interface (e.g., `UserMicroserviceFeignClient`) with the `@FeignClient` annotation.
+Set `"user-microservice"` as `name` argument of the `@FeignClient` annotation to enable the Eureka service discovery.
+
+```java
+@FeignClient(name="user-microservice")
+public interface UserMicroserviceFeignClient {
+
+}
+```
+
+Add a new method (e.g., `findUserByUsername`) within the interface and annotate it with the `@GetMapping` annotation. Set the path of the endopoint of the user microservice to be invoked, i.e., `user/username/{username}` as argument of the annotation. Set `JsonNode` as method type and bind the path variable in the method parameters:
+
+```java
+@FeignClient(name="user-microservice")
+public interface UserMicroserviceFeignClient {
+
+	@GetMapping("/user/username/{username}")
+	public JsonNode findUserByUsername(@PathVariable String username);
+}
+```
+
+#### Update the @Autowired type
+Update the `@Autowired private UserMicroserviceInvoker userMicroserviceInvoker;` definition into the `JobController` class by changing the type from `userMicroserviceInvoker` to `UserMicroserviceFeignClient`:
+
+```java
+@RestController
+@RequestMapping("/job")
+public class JobController {
+	...
+	@Autowired
+	private UserMicroserviceFeignClient userMicroserviceInvoker;
+	...
+}
+```
+
+### Update the Api Gateway
+To support the multiple instances of the User microservice, load balancing needs to be enabled also from the Api Gateway.
+Update the `api-gateway-dev.yaml` file within the property files repository to support load balancing as done in the previous step.
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user_route
+          uri: lb://user-microservice
+          predicates:
+          - Path=/api/usr/**
+          filters:
+          - RewritePath=/api/usr(?<segment>), /user$\{segment}
+        - id: job_route
+          uri: lb://job-microservice
+          predicates:
+          - Path=/api/job/**
+          filters:
+          - RewritePath=/api(?<segment>/?), $\{segment}
+```
+
+> [!NOTE]
+> User microservice instances could be balanced by only using the Api Gateway load balancer, by routing the requests from Job to User through the load balancing.
+> This can be done by just updating the `microservice.user.find.uri` property within the `job-microservice-dev.properties` file to `http://localhost:9000/api/usr/username/`.
+>
+><p align="center">
+>  <img src="docs/images/lb-alternatives.png" alt="load balancing alternatives" width="50%">
+></p>
+>
+> In this way the Api Gateway will act as a fully-centralized load balancer (alternative 1 in the picture), while the Job microservice will not own its client-side load balancer.
+
+### Run and Test
+Run all the system components and call the `http://localhost:9000/api/job/apply/job/2` to check if the invocation from Job to User is performed.
+
+> [!NOTE]
+> The OpenFeign client can be used also without load balancing. To realize it, add a `url` argument in the `@FeignClient` annotation and set it to the base url of the service to be invoked, e.g., `http://localhost:9044/`, or by referencing a property, e.g., `${microservice.user.base.uri}`.
+>
+> ```java
+>@FeignClient(name="userMicroserviceFeignClient", url="${microservice.user.base.uri}")
+>public interface UserMicroserviceFeignClient {
+>
+>	@GetMapping("username/{username}")
+>	public JsonNode findUserByUsername(@PathVariable String username);
+>}
+> ``` 
+> Where the `microservice.user.base.uri` is set either to `http://localhost:9044/user/` (if the invocation from Job to User is direct) or to `http://localhost:9000/api/usr/` (if the invocation from Job to User is done through the Api Gateway as in the previous note).
 
 ## Step 5: Dockerize application
 To be done
