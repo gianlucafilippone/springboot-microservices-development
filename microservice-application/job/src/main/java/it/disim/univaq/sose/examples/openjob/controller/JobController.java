@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import it.disim.univaq.sose.examples.openjob.feign.UserMicroserviceFeignClient;
 import it.disim.univaq.sose.examples.openjob.invoker.UserMicroserviceInvoker;
 import it.disim.univaq.sose.examples.openjob.model.Applicant;
 import it.disim.univaq.sose.examples.openjob.model.ApplicantIdentity;
@@ -32,11 +31,8 @@ public class JobController {
 	@Autowired
 	private JobService jobService;
 
-//	@Autowired
-//	private UserMicroserviceInvoker userMicroserviceInvoker;
-
 	@Autowired
-	private UserMicroserviceFeignClient userMicroserviceFeignClient;
+	private UserMicroserviceInvoker userMicroserviceInvoker;
 
 
 	@Value("${server.port}")
@@ -80,8 +76,7 @@ public class JobController {
 		System.out.println(portNumber);
 		Job job = jobService.findById(id);
 
-//		JsonNode jsonUser = userMicroserviceInvoker.findUserByUsername(username);
-		JsonNode jsonUser = userMicroserviceFeignClient.findUserByUsername(username);
+		JsonNode jsonUser = userMicroserviceInvoker.findUserByUsername(username);
 
 		Optional.ofNullable(jsonUser).orElseThrow();
 

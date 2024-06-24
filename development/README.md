@@ -871,4 +871,223 @@ Run all the system components and call the `http://localhost:9000/api/job/apply/
 > Where the `microservice.user.base.uri` is set either to `http://localhost:9044/user/` (if the invocation from Job to User is direct) or to `http://localhost:9000/api/usr/` (if the invocation from Job to User is done through the Api Gateway as in the previous note).
 
 ## Step 5: Dockerize application
-To be done
+
+### Migrate to a MySQL DB
+> [!NOTE]
+> To properly run the application in a production-like environment, we have to move the User and Job databases to an external database.
+
+#### Update User and Job microservices
+> [!NOTE]
+> This steps are the same for both microservices
+
+Update the `pom.xml` file of the microservice by removing the dependency for `h2` and adding the one for `mysql-connector-j`.
+
+```xml
+...
+<dependency>
+	<groupId>com.mysql</groupId>
+	<artifactId>mysql-connector-j</artifactId>
+	<scope>runtime</scope>
+</dependency>
+...
+```
+
+Update the `data.sql` file by substituting the double quotes (`"`) with backtics (`` ` ``).
+
+#### Update configuration files
+Remove the previous `spring.datasource` and `spring.jpa` configurations from within `user-microservice-dev.properties` and `job-microservice-dev.properties` files from within the property files repository and replace with the new configuration for the MySQL database
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:8889/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Spring JPA configuration
+spring.jpa.properties.hibernate.globally_quoted_identifiers=true
+spring.jpa.hibernate.ddl-auto=update
+```
+
+> [!NOTE]
+> In this configuration, we are assuming that the MySQL is running on the `localhost` with port `8889`.
+> Set the name of the database for the two services (`user_db` and `job_db`). The previous code is related to the User microservice.
+
+#### Run and test
+Run the MySQL server and all the application components to test the application.
+
+> [!NOTE]
+> The database and its schema will be automatically create on the application startup. However, the data will not be loaded anymore.
+> To load data, run the sql queries contained in the microservices' `data.sql` files on the respective database (e.g., through the Php MyAdmin console).
+>
+> As alternative, you may add the properties `spring.sql.init.mode=always` and `spring.jpa.defer-datasource-initialization=true` to the properties file (this is discouraged).
+
+> [!IMPORTANT]
+>
+> Setting `spring.sql.init.mode=always` and `spring.jpa.defer-datasource-initialization=true` will cause the service crash when it is started up again. Remove the properties once the database is populated.
+
+### Parametrize configurations
+Remove all the hard-coded references to service urls (e.g., Configuration server, Eureka server) and database parameters (e.g., DB host and names, username, password) from the all the property files (both in the property files repository and in the service properties). Replace it with placeholders.
+
+The `application.properties` file within the `/resources` folder of each system component should look like this:
+
+```properties
+spring.application.name=user-microservice
+
+spring.profiles.active=dev
+
+spring.config.import=optional:configserver:http://${CONFIG_SERVER_HOST}:${CONFIG_SERVER_PORT}
+spring.cloud.config.fail-fast=true
+```
+
+> [!NOTE]
+> There is no need to parametrize the Configuration service's `application.properties`. Set a remote repository as the URI of the property files. 
+
+Update also the references in the property files repository.
+Substitute the Eureka's default zone with `${EUREKA_SERVER}`, the mySQL host url with `${MYSQL_HOST}`, the database name with `${MYSQL_DB}`, and user and password with `${MYSQL_USER}` and `${MYSQL_PASSWORD}`.
+
+The file `user-microservice-dev.properties` will look like this:
+
+```properties
+spring.datasource.url=jdbc:mysql://${MYSQL_HOST}/${MYSQL_DB}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
+spring.datasource.username=${MYSQL_USER}
+spring.datasource.password=${MYSQL_PASSWORD}
+
+...
+
+eureka.client.service-url.defaultZone=${EUREKA_SERVER}
+```
+
+### Create the Dockerfiles
+Create a `Dockerfile` for each of the system components: User and Job microservices, API Gateway, Discovery Server, Configuration Server.
+
+The `Dockerfile` for the User microservice will look like this:
+
+```
+FROM maven:3.9.2-eclipse-temurin-17-alpine
+
+WORKDIR /user-microservice
+COPY  . .
+
+RUN mvn clean install
+CMD mvn spring-boot:run
+```
+
+> [!NOTE]
+> The Dockerfile of each system component will look like the previous one. Only the `WORKDIR` path is different.
+>
+> Use `/job-microservice`, `/gateway-app`, `/discovery-server-app`, `/config-server-app` for the Job microservice, API Gateway, Discovery Server and Configuration Server, respectively.
+
+
+### Create the docker-compose file
+Create a `docker-compose.yml` in the root folder of the whole application (`/openjob`)
+
+```yaml
+services:
+  openjob-mysql:
+    image: mysql:latest
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+
+  openjob-phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "8081:80"
+    links:
+      - "openjob-mysql:db"
+    depends_on:
+      - openjob-mysql
+
+  config-server:
+    build: ./config-server
+    ports:
+      - "8888:8888"
+
+  discovery-server:
+    build: ./discovery-server
+    ports:
+      - "8761:8761"
+	environment:
+	  CONFIG_SERVER_HOST: config-server
+      CONFIG_SERVER_PORT: 8888
+    depends_on:
+      - config-server
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "9000:9000"
+    environment:
+      CONFIG_SERVER_HOST: config-server
+      CONFIG_SERVER_PORT: 8888
+      EUREKA_SERVER: http://discovery-server:8761/eureka/
+    depends_on:
+      - config-server
+      - discovery-server
+
+  user-microservice:
+    build: ./user
+    ports:
+      - "9044-9049:9044"
+    environment:
+      CONFIG_SERVER_HOST: config-server
+      CONFIG_SERVER_PORT: 8888
+      EUREKA_SERVER: http://discovery-server:8761/eureka/
+      MYSQL_HOST: openjob-mysql:3306
+      MYSQL_DB: user
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+    depends_on:
+      - config-server
+      - discovery-server
+      - openjob-mysql
+
+  job-microservice:
+    build: ./job
+    expose:
+      - "9055"
+    environment:
+      CONFIG_SERVER_HOST: config-server
+      CONFIG_SERVER_PORT: 8888
+      EUREKA_SERVER: http://discovery-server:8761/eureka/
+      MYSQL_HOST: openjob-mysql:3306
+      MYSQL_DB: job
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+    depends_on:
+      - config-server
+      - discovery-server
+      - openjob-mysql
+volumes:
+  mysql-data: 
+```
+
+### Configure Spring Config Client Retry
+> [!NOTE]
+>
+> The `depends_on` property in the `docker-compose` file ensures that containers are started in sequence, but it does not ensure that services are ready before starting the next one.
+> The [Config Client Retry](https://cloud.spring.io/spring-cloud-config/multi/multi__spring_cloud_config_client.html#config-client-retry) needs to be configured to avoid the problem.
+
+Add the property `spring.cloud.config.fail-fast=true` to the `application.properties` file of User and Job microservices, API Gateway, and Discovery Server to enable the retry getting configuration after a failure.
+
+Add `spring-retry` and `spring-boot-starter-aop` to the `pom.xml` of the same components.
+
+```xml
+...
+<dependency>
+	<groupId>org.springframework.retry</groupId>
+	<artifactId>spring-retry</artifactId>
+</dependency>
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+...
+```
+
+### Run the application
+Run `docker-compose -p openjob up -d` to run the whole system. As an alternative, all components can be run without docker-compose as shown in the [repository description](../README.md#dockerize-application-1).
+
+> [!NOTE]
+> Files resulting from this final development step are in the [microservice-application](../microservice-application/) folder.

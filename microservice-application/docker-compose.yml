@@ -24,6 +24,9 @@ services:
     build: ./discovery-server
     ports:
       - "8761:8761"
+    environment:
+      CONFIG_SERVER_HOST: config-server
+      CONFIG_SERVER_PORT: 8888
     depends_on:
       - config-server
 
@@ -72,6 +75,5 @@ services:
       - config-server
       - discovery-server
       - openjob-mysql
-
 volumes:
   mysql-data: 

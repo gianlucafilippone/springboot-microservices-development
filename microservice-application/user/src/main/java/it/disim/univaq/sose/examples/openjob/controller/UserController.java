@@ -3,7 +3,6 @@ package it.disim.univaq.sose.examples.openjob.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,47 +21,38 @@ import it.disim.univaq.sose.examples.openjob.service.UserService;
 @RequestMapping("/user")
 public class UserController {
 
-	@Value("${server.port}")
-	private String portNumber;
-
 	@Autowired
 	private UserService userService;
 
 	@GetMapping
 	public ResponseEntity<List<User>> getAllUsers() {
-		System.out.println(portNumber);
 		return new ResponseEntity<List<User>>(userService.findAll(), HttpStatus.OK);
 	}
 
 	@GetMapping("/id/{id}")
 	public ResponseEntity<User> getUserById(@PathVariable("id") Long id) {
-		System.out.println(portNumber);
 		return new ResponseEntity<User>(userService.findById(id), HttpStatus.OK);
 	}
 
 	@GetMapping("/username/{username}")
 	public ResponseEntity<User> getUserByUsername(@PathVariable("username") String username) {
-		System.out.println(portNumber);
 		return new ResponseEntity<User>(userService.findByUsername(username).orElse(null), HttpStatus.OK);
 	}
 
 	@PostMapping
 	public ResponseEntity<Void> createUser(@RequestBody User user) {
-		System.out.println(portNumber);
 		userService.create(user);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
 	@PutMapping
 	public ResponseEntity<Void> updateUser(@RequestBody User user) {
-		System.out.println(portNumber);
 		userService.update(user);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
 	@DeleteMapping("/id/{id}")
 	public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
-		System.out.println(portNumber);
 		userService.delete(id);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
