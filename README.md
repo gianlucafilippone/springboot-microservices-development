@@ -149,13 +149,13 @@ java -jar config-server/target/config-server-0.0.1-SNAPSHOT.jar
 
 Run the discovery server:
 ```
-mvn spring-boot:run -pl discovery-server
+mvn spring-boot:run -pl discovery-server -Dspring-boot.run.arguments="--CONFIG_SERVER_HOST=localhost --CONFIG_SERVER_PORT=8888
 ```
 
 or 
 
 ```
-java -jar config-server/target/discovery-server-0.0.1-SNAPSHOT.jar
+java -jar config-server/target/discovery-server-0.0.1-SNAPSHOT.jar --CONFIG_SERVER_HOST=localhost --CONFIG_SERVER_PORT=8888
 ```
 
 Run the API Gateway:
@@ -175,13 +175,13 @@ Run User and Job microservices:
 (Substitute `{user/job}` with `user` or `job` to run the command. Execute the command for both microservices)
 
 ```
-mvn spring-boot:run -pl {user/job} -Dspring-boot.run.arguments="--CONFIG_SERVER_PORT=8888 --EUREKA_SERVER=http://localhost:8761/eureka/ --MYSQL_HOST=localhost:3306 --MYSQL_DB={user/job} --MYSQL_PORT=3306 --MYSQL_USER=root --MYSQL_PASSWORD=root"
+mvn spring-boot:run -pl {user/job} -Dspring-boot.run.arguments="--CONFIG_SERVER_HOST=localhost --CONFIG_SERVER_PORT=8888 --EUREKA_SERVER=http://localhost:8761/eureka/ --MYSQL_HOST=localhost:3306 --MYSQL_DB={user/job} --MYSQL_PORT=3306 --MYSQL_USER=root --MYSQL_PASSWORD=root"
 ```
 
 or
 
 ```
-java -jar {user/job}/target/{user/job}-0.0.1-SNAPSHOT.jar --CONFIG_SERVER_PORT=8888 --EUREKA_SERVER=http://localhost:8761/eureka/ --MYSQL_HOST=localhost:3306 --MYSQL_DB={user/job} --MYSQL_PORT=3306 --MYSQL_USER=root --MYSQL_PASSWORD=root
+java -jar {user/job}/target/{user/job}-0.0.1-SNAPSHOT.jar --CONFIG_SERVER_HOST=localhost --CONFIG_SERVER_PORT=8888 --EUREKA_SERVER=http://localhost:8761/eureka/ --MYSQL_HOST=localhost:3306 --MYSQL_DB={user/job} --MYSQL_PORT=3306 --MYSQL_USER=root --MYSQL_PASSWORD=root
 ```
 
 Note: to run Job and User microservices a MYSQL server should be up and running. In this configuration, we assume that is running on the `localhost` at port `3306`. The database user and paassword are `root`.
@@ -194,14 +194,22 @@ The microservice version of Openjob comes with a `docker-compose` file that allo
 docker compose up
 ```
 
-Alternatively, to run all the microservices without using Docker Compose:
+Alternatively, to run all the components without using Docker Compose:
 
 ```
+docker network create openjob-network
+
+docker pull mysql:latest
+docker run -d --name openjob-mysql --network openjob-network -v openjob_mysql-data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root mysql:latest
+
+docker pull phpmyadmin:latest
+docker run --name openjob-phpmyadmin -d --network openjob-network --link openjob-mysql:db -p 8081:80 phpmyadmin:latest
+
 docker build -t config-server config-server/
 docker run --name config-server --network openjob-network -dp 8888:8888 config-server
 
 docker build -t discovery-server discovery-server/
-docker run --name config-server --network openjob-network -dp 8761:8761 discovery-server
+docker run --name discovery-server --network openjob-network -dp 8761:8761 -e CONFIG_SERVER_HOST=config-server -e CONFIG_SERVER_PORT=8888 discovery-server
 
 docker build -t gateway gateway/
 docker run --name gateway --network openjob-network -dp 9000:9000 -e CONFIG_SERVER_HOST=config-server -e CONFIG_SERVER_PORT=8888 -e EUREKA_SERVER=http://discovery-server:8761/eureka/ gateway
@@ -237,6 +245,7 @@ These endpoints should be exposed for usage from client applications:
 - `[GET] http://localhost:9000/api/job/apply/{username}/{id}`
 - `[GET] http://localhost:9000/actuator/health`
 - `[GET] http://localhost:9000/actuator/info`
+- `[GET] http://localhost:9000/actuator/refresh`
 
 #### By User and Job microservices
 
